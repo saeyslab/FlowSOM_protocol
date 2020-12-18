@@ -126,7 +126,7 @@ for (file in files){
       geom_point(size = 0.5,
                  color = ifelse(exprs(ff_pre)[i,"Original_ID"] %in% 
                                   exprs(ff_post)[,"Original_ID"], 'blue', 'red')) +
-      xlab(marker_x) + ylab(marker_y) +
+      xlab(GetMarkers(ff_pre, marker_x)) + ylab(GetMarkers(ff_pre, marker_y)) +
       theme_minimal() + theme(legend.position = "none") +
       ggtitle(title)
     return(p)
