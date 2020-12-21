@@ -9,7 +9,7 @@
 # BiocManager::install("FlowRepositoryR")
 # if (!requireNamespace("devtools", quietly = TRUE))
 #   install.packages("devtools")
-# devtools::install_github("saeyslab/FlowSOM", ref = "FlowSOM_v2")
+# devtools::install_github("saeyslab/FlowSOM")
 # devtools::install_github("saeyslab/PeacoQC")
 
 
@@ -114,9 +114,9 @@ for (file in files){
             file = paste0(dir_prepr, file))
 
   # 13. Visualize the preprocessing
-  filter_plot <- function(ff_pre, ff_post, title, marker_x, marker_y){
-    df <- data.frame(x = exprs(ff_pre)[,marker_x],
-                     y = exprs(ff_pre)[,marker_y])
+  filter_plot <- function(ff_pre, ff_post, title, channel_x, channel_y){
+    df <- data.frame(x = exprs(ff_pre)[,channel_x],
+                     y = exprs(ff_pre)[,channel_y])
     i <- sample(nrow(df), 10000)
     if (!"Original_ID" %in% colnames(exprs(ff_pre))) {
       ff_pre@exprs <- cbind(ff_pre@exprs, 
@@ -126,7 +126,7 @@ for (file in files){
       geom_point(size = 0.5,
                  color = ifelse(exprs(ff_pre)[i,"Original_ID"] %in% 
                                   exprs(ff_post)[,"Original_ID"], 'blue', 'red')) +
-      xlab(GetMarkers(ff_pre, marker_x)) + ylab(GetMarkers(ff_pre, marker_y)) +
+      xlab(GetMarkers(ff_pre, channel_x)) + ylab(GetMarkers(ff_pre, channel_y)) +
       theme_minimal() + theme(legend.position = "none") +
       ggtitle(title)
     return(p)
@@ -134,31 +134,31 @@ for (file in files){
   to_plot <- list(list(ff_pre = ff,
                        ff_post = ff_m,
                        title = "Removed margin events",
-                       marker_x = "PerCP-Cy5-5-A",
-                       marker_y = "BV605-A"),
+                       channel_x = "PerCP-Cy5-5-A",
+                       channel_y = "BV605-A"),
                   list(ff_pre = ff_t,
                        ff_post = ff_s,
                        title = "Removed doublets",
-                       marker_x = "FSC-A",
-                       marker_y = "FSC-H"),
+                       channel_x = "FSC-A",
+                       channel_y = "FSC-H"),
                   list(ff_pre = ff_s,
                        ff_post = ff_l,
                        title = "Removed debris and dead cells",
-                       marker_x = "FSC-A",
-                       marker_y = "APC-Cy7-A"),
+                       channel_x = "FSC-A",
+                       channel_y = "APC-Cy7-A"),
                   list(ff_pre = ff_l,
                        ff_post = PQC$FinalFF,
                        title = "Removed low quality events",
-                       marker_x = "Time",
-                       marker_y = "PerCP-Cy5-5-A"))
+                       channel_x = "Time",
+                       channel_y = "PerCP-Cy5-5-A"))
   
   plot_list <- list()
   for (plot in to_plot) {
     plot_list[[length(plot_list) + 1]] <- filter_plot(ff_pre = plot$ff_pre, 
                                                       ff_post = plot$ff_post,
                                                       title = plot$title,
-                                                      marker_x = plot$marker_x,
-                                                      marker_y = plot$marker_y)
+                                                      channel_x = plot$channel_x,
+                                                      channel_y = plot$channel_y)
   }
   
   png(paste0(dir_QC, sub("fcs", "png", file)), width = 1920)
