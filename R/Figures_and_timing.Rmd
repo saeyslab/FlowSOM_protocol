@@ -1,0 +1,447 @@
+---
+title: "Figures"
+author: "Katrien Quintelier"
+date: "2/24/2021"
+output: html_document
+---
+
+# Directory
+```{r, setup}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+```
+
+```{r}
+dir.create("Figures")
+```
+
+# Packages
+```{r}
+suppressPackageStartupMessages(library(flowCore)) 
+suppressPackageStartupMessages(library(FlowSOM))
+suppressPackageStartupMessages(library(ggplot2))
+```
+
+# Figures for paper
+## 2 
+```{r}
+tiff("Figures/FIGURE_2.tiff", width = 4000, height = 1000, res = 330)
+print(ggpubr::ggarrange(plotlist = plot_list, nrow = 1)) +
+  theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt"))
+dev.off()
+```
+
+## 3 
+```{r}
+ff <- AggregateFlowFrames(paste0(dir_prepr,files), 
+                          cTotal = 100000, 
+                          channels = channels_of_interest)
+data <- ff@exprs
+file_values <- data[, "File"]
+subset <- sample(seq_len(nrow(data)), min(100000, nrow(data)))
+data <- data[subset,]
+
+file_values <- file_values[subset]
+channels <- channels_of_interest
+names = file_names
+groups = file_groups
+plots_list <- list()
+for (channel in channels) {
+  df <- data.frame(intensity = data[, channel], 
+                   names = factor(names[file_values], levels = unique(names)), 
+                   group = factor(groups[file_values], levels = unique(groups)))
+  p <- ggplot(df, aes(.data$names, .data$intensity)) + 
+    geom_jitter(position = position_jitter(width = 0.1), 
+                alpha = 0.5, aes(colour = .data$group), shape = ".") + 
+    ylab(GetMarkers(ff, channel)) + theme_classic() + 
+    theme(axis.title.x = element_blank(),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, size = 30),
+          axis.title.y = element_text(size = 40),
+          axis.text.y = element_text(size = 40),
+          legend.title = element_text(size = 40),
+          legend.text = element_text(size = 40)) + 
+    guides(colour = guide_legend(override.aes = list(size = 5, shape = 15, 
+                                                     alpha = 1)))
+  plots_list[[length(plots_list) + 1]] <- p
+}
+
+tiff("Figures/FIGURE_3.tiff", width = 3500, height = 1500)
+ggpubr::annotate_figure(ggpubr::ggarrange(plotlist = plots_list, 
+                                          common.legend = TRUE, 
+                                          ncol = 6, nrow = 2,
+                                          font.label = list(size=40)), 
+                        bottom = ggpubr::text_grob("Files", size = 40), 
+                        left = ggpubr::text_grob("Fluorescence intensity", size = 40,
+                                                 rot = 90))
+dev.off()
+```
+
+## 4
+### 4A Scatter channel not scaled
+```{r}
+dir.create("Data/Preprocessed_wrong")
+dir.create("Data/Preprocessed_wrong/QC")
+dir_wprepr <- "Data/Preprocessed_wrong"
+dir_wQC <- "Data/Preprocessed_wrong/QC"
+
+translist <- NULL
+for (file in files){
+  # Read the fcs file into a flowframe
+  ff <- read.FCS(paste0(dir_raw, file), truncate_max_range = FALSE)
+  
+  # Remove margin events
+  ff_m <- PeacoQC::RemoveMargins(ff, channels_of_interest)
+  
+  # Compensate
+  ff_c <- flowCore::compensate(ff_m, compensation_matrix)
+  
+  # Transform, logicle for marker channels, "forget" the SSC-A scaling
+  if (is.null(translist)) { # Calculate transformation on first file and apply to all
+    translist <- estimateLogicle(ff_c,  
+                                 colnames(compensation_matrix))
+  }
+  ff_t <- flowCore::transform(ff_c, translist)
+  
+  # Remove doublets and filter live cells
+  ff_s <- PeacoQC::RemoveDoublets(ff_t)
+  
+  selected_live <- filter(ff_s, live_gate)
+  ff_l <- ff_s[selected_live@subSet, ]
+  
+  # QC with PeacoQC
+  PQC <- PeacoQC::PeacoQC(ff = ff_l,
+                          channels = channels_of_interest,
+                          plot = FALSE, save_fcs = FALSE,
+                          output_directory = dir_wQC)
+  
+  # Save the preprocessed data
+  write.FCS(PQC$FinalFF,
+            file = paste0(dir_wprepr, file))
+}
+
+set.seed(2020)
+wagg1 <- AggregateFlowFrames(paste0(dir_wprepr, files),
+                             cTotal = n,
+                             writeOutput = TRUE,
+                             outputFile = paste0(dir_wprepr, "waggregate1.fcs"))
+
+wfsom1 <- FlowSOM(input = wagg1,
+                  scale = scaling,
+                  colsToUse = markers_of_interest[1:6],
+                  seed = seed,
+                  nClus = n_meta,
+                  xdim = SOM_x, ydim = SOM_y)
+saveRDS(wfsom1, paste(dir_RDS, "wfsom1.rds"))
+
+p1 <- PlotStars(fsom = wfsom1,
+                maxNodeSize = 20, list_insteadof_ggarrange = TRUE)
+p1 <- ggpubr::ggarrange(p1$starLegend, p1$tree,
+                        nrow = 2, heights = c(1,5)) +
+  theme(plot.margin=margin(10,0,0,0))
+```
+
+### 4B Batch effect, here introduced by an additional transformation
+```{r}
+translist <- NULL
+translist_batch <- c(transformList("BV605-A", flowCore::linearTransform(a = 1.2,
+                                                                        b = 0.5)),
+                     transformList("BV786-A", flowCore::linearTransform(a = 0.7,
+                                                                        b = -0.3)),
+                     transformList("APC-A", flowCore::linearTransform(a = 1.3,
+                                                                      b = 0)),
+                     transformList("PE-A", flowCore::linearTransform(a = 1,
+                                                                     b = 0.5)))
+file_names_ex <- c("day1 1", "day1 2", "day1 3",
+                   "day2 1", "day2 2", "day2 3")
+for (file in files){
+  # Read the fcs file into a flowframe
+  ff <- read.FCS(paste0(dir_raw, file), truncate_max_range = FALSE)
+  
+  # Remove margin events
+  ff_m <- PeacoQC::RemoveMargins(ff, channels_of_interest)
+  
+  # Compensate
+  ff_c <- flowCore::compensate(ff_m, compensation_matrix)
+  
+  # Transform, logicle for marker channels, "forget" the SSC-A scaling
+  if (is.null(translist)) { # Calculate transformation on first file and apply to all
+    translist <- estimateLogicle(ff_c,  
+                                 colnames(compensation_matrix))
+    ff_t <- flowCore::transform(ff_c, translist)
+    q5_goal <- quantile(exprs(ff_t)[,"PE-A"], 0.05)
+    q95_goal <- quantile(exprs(ff_t)[,"PE-A"], 0.95)
+    q5_SSCA <- quantile(exprs(ff_t)[,"SSC-A"], 0.05)
+    q95_SSCA <- quantile(exprs(ff_t)[,"SSC-A"], 0.95)
+    SSCA_a <- (q95_goal - q5_goal) / (q95_SSCA - q5_SSCA)
+    SSCA_b <- q5_goal - q5_SSCA * (q95_goal - q5_goal) / (q95_SSCA - q5_SSCA)
+    translist <- c(translist, 
+                   transformList("SSC-A", flowCore::linearTransform(a = SSCA_a,
+                                                                    b = SSCA_b)))
+  }
+  ff_t <- flowCore::transform(ff_c, translist)
+  if (file %in% files[4:7]){
+    ff_t <- flowCore::transform(ff_t, translist_batch)
+  }
+  
+  # Remove doublets and filter live cells
+  ff_s <- PeacoQC::RemoveDoublets(ff_t)
+  
+  selected_live <- filter(ff_s, live_gate)
+  ff_l <- ff_s[selected_live@subSet, ]
+  
+  # QC with PeacoQC
+  PQC <- PeacoQC::PeacoQC(ff = ff_l,
+                          channels = channels_of_interest,
+                          plot = FALSE, save_fcs = FALSE,
+                          output_directory = dir_wQC)
+  
+  # Save the preprocessed data
+  write.FCS(PQC$FinalFF,
+            file = paste0(dir_wprepr, file))
+}
+
+plots <- PlotFileScatters(input = paste0(dir_wprepr, files[1:6]),
+                          channels = channels_of_interest,
+                          names = file_names_ex, legend = TRUE,
+                          groups = rep(c("day 1", "day 2"), each = 3),
+                          plotFile = NULL, color = c("red", "navy"))
+p2 <- ggpubr::annotate_figure(ggpubr::ggarrange(plotlist = plots[4:9], 
+                                                ncol = 3, nrow = 2,
+                                                common.legend = TRUE) +
+                                theme(plot.margin = margin(10,10,10,10)),
+                              bottom = ggpubr::text_grob("Files"),
+                              left = ggpubr::text_grob("Fluorescence intensity", rot = 90))
+
+set.seed(2020)
+wagg2 <- AggregateFlowFrames(paste0(dir_wprepr, files[1:6]),
+                             cTotal = n,
+                             writeOutput = TRUE,
+                             outputFile = paste0(dir_wprepr, "waggregate2.fcs"))
+
+wfsom2 <- FlowSOM(input = wagg2,
+                  scale = scaling,
+                  colsToUse = markers_of_interest,
+                  seed = seed,
+                  nClus = n_meta,
+                  xdim = SOM_x, ydim = SOM_y)
+saveRDS(wfsom2, paste(dir_RDS, "wfsom2.rds"))
+
+file_factor <- factor(files[wfsom2$data[,"File"]])
+levels(file_factor) <- file_names_ex
+p3 <- PlotPies(fsom = wfsom2,
+               cellTypes = file_factor,
+               colorPalette = file_colors,
+               maxNodeSize = 1.2)
+```
+
+### 4C Manual vector not in correct order
+```{r}
+mock_manual_types <- c("Unlabeled", paste0("Cell Type ", 1:6))
+mock_manual_labels <- factor(rep(mock_manual_types,
+                                 c(50000, 120000, 100000, 130000, 
+                                   90000, 130000, 80000)),
+                             levels = mock_manual_types)
+p4 <- PlotPies(fsom = fsom,
+               cellTypes = mock_manual_labels)
+```
+
+### 4
+```{r}
+tiff("Figures/FIGURE_4.tiff", width = 4000, height = 2000, res = 330)
+ggpubr::ggarrange(p1, p2, p4, p3,
+                  labels = c("a", "c", "b", "d"))
+dev.off()
+```
+
+## 5
+```{r}
+p <- PlotStars(fsom = fsom,
+               backgroundValues = fsom$metaclustering,
+               list_insteadof_ggarrange = TRUE)
+
+tiff("Figures/FIGURE_5.tiff", width = 4000, height = 2400, res = 330)
+ggpubr::ggarrange(p$tree, 
+                  ggpubr::ggarrange(p$starLegend, p$backgroundLegend, 
+                                    nrow = 2),
+                  ncol = 2, widths = c(1.5,1))
+dev.off()
+```
+
+## 6
+```{r}
+tiff("Figures/FIGURE_6.tiff", width = 3000, height = 1800, res = 400)
+PlotPies(fsom = fsom,
+         cellTypes = factor(aggregate_labels, 
+                            levels = c("Unlabeled", cell_types_of_interest)))
+dev.off()
+```
+
+## 7
+```{r}
+tiff("Figures/FIGURE_7.tiff", width = 3000, height = 1800, res = 400)
+ggpubr::ggarrange(plotlist = list(gr_1$tree, gr_2$tree, 
+                                  gr_2$starLegend, gr_2$backgroundLegend), 
+                  heights = c(3,1))
+dev.off()
+```
+
+
+
+# Session info 
+```{r}
+writeLines(capture.output(sessionInfo()), "sessionInfo.txt")
+```
+
+# Timing 
+```{r}
+# microbenchmark::microbenchmark(PlotFileScatters(input = paste0(dir_prepr, files),
+#                                                 channels = channels_of_interest,
+#                                                 names = file_names, legend = TRUE,
+#                                                 groups = file_groups, nrow = 2,
+#                                                 plotFile = paste0(dir_QC, "file_scatters.png")),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(AggregateFlowFrames(paste0(dir_prepr, files),
+#                                                    cTotal = n,
+#                                                    writeOutput = TRUE,
+#                                                    outputFile = paste0(dir_prepr, "aggregate.fcs")),
+#                                times = 10)
+# 
+#  microbenchmark::microbenchmark(FlowSOM(input = agg,
+#                                         scale = scaling,
+#                                         colsToUse = markers_of_interest,
+#                                         seed = seed,
+#                                         nClus = n_meta,
+#                                         xdim = SOM_x, ydim = SOM_y),
+#                                 times = 10)
+#  
+# microbenchmark::microbenchmark(PlotStars(fsom = fsom,
+#                                          backgroundValues = fsom$metaclustering),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(Plot2DScatters(fsom = fsom,
+#                                               channelpairs = channel_pairs,
+#                                               metaclusters = metaclusters_of_interest,
+#                                               clusters = clusters_of_interest,
+#                                               plotFile = paste0(dir_results, "fsom_2D_scatters.png")),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(GetFlowJoLabels(files = files,
+#                                                wspFile = "Data/Raw/attachments/General_panel.wsp",
+#                                                path = dir_raw),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(Purity(realClusters = aggregate_labels,
+#                                       predictedClusters = GetClusters(fsom)),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(PlotPies(fsom = fsom,
+#                                         cellTypes = factor(aggregate_labels, levels = c("Unlabeled",
+#                                                                                         cell_types_of_interest))),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(FlowSOMmary(fsom = fsom,
+#                                            plotFile = paste0(dir_results, "fsom_summary.pdf")),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(QueryMultiple(fsom = fsom,
+#                                              cellTypes = query,
+#                                              plotFile = paste0(dir_results, "fsom_QueryStarPlot.pdf")),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(PlotVariable(fsom = fsom,
+#                                             variable = labels),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(GetFeatures(fsom = fsom,
+#                                            files = paste0(dir_prepr, files),
+#                                            filenames = file_names,
+#                                            type = types,
+#                                            MFI = MFIs),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(GroupStats(features = features[[feature]],
+#                                           groups = grouplist),
+#                                times = 10)
+# 
+# microbenchmark::microbenchmark(fsom_tmp <- NewData(fsom = fsom,
+#                                                    input = ff_prepr),
+#                                times = 10)
+```
+
+# Cover suggestion
+```{r}
+agg <- read.FCS("Data/Preprocessed/aggregate.fcs")
+fsom <- FlowSOM(input = agg,
+                scale = FALSE,
+                colsToUse = c("MHCII", "CD64", "FcERI", "CD161", "Ly-6G", "CD3", "CD19", "CD11c"),
+                seed = 2021,
+                nClus = 8,
+                xdim = 8, ydim = 8)
+saveRDS(fsom, "Figures/fsom_cover.rds")
+
+p <- PlotStars(fsom, 
+               backgroundValues = fsom$metaclustering, 
+               list_insteadof_ggarrange = TRUE)
+
+ggpubr::ggarrange(p$tree, 
+                  ggpubr::ggarrange(p$starLegend, p$backgroundLegend,
+                                    ncol = 2, widths = c(3,1)),
+                  nrow = 2, heights = c(3,1))
+ggsave(file = "Figures/fsom_cover.pdf", 
+       width = 216, height = 285, 
+       units = "mm")
+```
+
+# Cheat sheet
+## Read fsom
+```{r}
+fsom <- readRDS("Figures/fsom.rds")
+```
+
+<!-- ## fsom was created in other script -->
+<!-- ```{r} -->
+<!-- set.seed(2020) -->
+<!-- agg <- AggregateFlowFrames(paste0("~/Desktop/Paper/FlowSOM/Data/preprocessed/",  -->
+<!--                                   c("Tube_011.fcs", "Tube_012.fcs", "Tube_013.fcs",  -->
+<!--                                   "Tube_028.fcs", "Tube_030.fcs", "Tube_031.fcs", -->
+<!--                                   "Tube_032.fcs")), -->
+<!--                            cTotal = 100000 * length(files), -->
+<!--                            writeOutput = TRUE, -->
+<!--                            outputFile = "Data/preprocessed/aggregate.fcs", -->
+<!--                            channels = c(channels_of_interest, "Original_ID")) -->
+<!-- fsom_fig <- FlowSOM(input = agg, -->
+<!--                     scale = FALSE, -->
+<!--                     colsToUse = c("PE-A", "PE-Cy5-A", "Alexa Fluor 700-A", "BV605-A"), -->
+<!--                     nClus = 5, -->
+<!--                     seed = 2020,  -->
+<!--                     xdim = 4, ydim = 4) -->
+<!-- ``` -->
+
+<!-- ## Rotate FlowSOM object -->
+<!-- ```{r} -->
+<!-- angle <- -pi/6 -->
+<!-- rotation_matrix <- matrix(c(cos(angle), sin(angle), -sin(angle), cos(angle)), nrow = 2) -->
+<!-- fsom_fig$MST$l <- t(apply(fsom_fig$MST$l, 1, function(x) rotation_matrix %*% x)) -->
+<!-- ``` -->
+
+## Default PlotStars
+```{r}
+stars <- PlotStars(fsom, 
+                   backgroundValues = fsom$metaclustering,
+                   list_insteadof_ggarrange = TRUE)
+stars$tree
+ggsave(filename = "Figures/FlowSOM_mini.pdf",
+       plot = stars$tree)
+```
+
+## Mapped PlotStars
+```{r}
+fcs2 <- read.FCS("Data/Preprocessed/21-10-15_Tube_031.fcs")
+fcs2@exprs[,"BV605-A"] <- fcs2@exprs[,"BV605-A"] + 0.5
+fsom2 <- NewData(fsom, fcs2)
+stars <- PlotStars(fsom2, 
+                   backgroundValues = fsom2$metaclustering,
+                   list_insteadof_ggarrange = TRUE)
+ggsave(filename = "Figures/FlowSOM_NewData.pdf",
+       plot = stars$tree)
+```
