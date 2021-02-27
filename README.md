@@ -1,14 +1,29 @@
 # FlowSOM protocol
-R code to demonstrate the FlowSOM analysis pipeline. The protocol, including
-installing the necessary packages and downloading the used dataset, can be found
-in R/FlowSOM_protocol.R.
- 
+R code to demonstrate the FlowSOM analysis pipeline.   
+The protocol, including installing the necessary packages and downloading the 
+used dataset, can be found in [R/FlowSOM_protocol.R](R/FlowSOM_protocol.R). 
+Typically, the installation of the packages takes less than ten minutes. An 
+average FlowSOM analysis takes one to three hours to complete, quality issues 
+can increase the time considerably.  
+This automated analysis pipeline will result in a FlowSOM object 
+and multiple plots that will help in understanding, visualizing and analyzing 
+high-dimensional data.
+
 ### Key steps in the protocol
 * Prepare the data, including quality control (steps 1-16)
 * Train FlowSOM model (steps 17-19)
 * Check the quality of the FlowSOM model (steps 20)
 * Use the FlowSOM model for further discovery (steps 21-26)
- 
+
+### References
+Quintelier K. et al. Analyzing high dimensional data using FlowSOM. (2021)  
+(Additional code to reproduce the figures and timing is listed in 
+[R/Figures_and_timing.R](R/Figures_and_timing.R).)  
+  
+  
+Van Gassen, S. et al. FlowSOM: Using self-organizing maps for visualization and 
+interpretation of cytometry data. Cytometry A. (2015) doi:10.1002/cyto.a.22625
+
 ### Session information
 ```{r}
 sessionInfo()
