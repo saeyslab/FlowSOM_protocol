@@ -460,7 +460,6 @@ fsom <- readRDS("Figures/fsom.rds")
 stars <- PlotStars(fsom, 
                    backgroundValues = fsom$metaclustering,
                    list_insteadof_ggarrange = TRUE)
-stars$tree
 ggsave(filename = "Figures/FlowSOM_mini.pdf",
        plot = stars$tree)
 ```
@@ -476,3 +475,16 @@ stars <- PlotStars(fsom2,
 ggsave(filename = "Figures/FlowSOM_NewData.pdf",
        plot = stars$tree)
 ```
+
+## FlowSOM subset
+```{r}
+mc <- GetMetaclusters(fsom)
+fsom3 <- FlowSOMSubset(fsom = fsom,
+                       ids = which(mc == 1))
+stars <- PlotStars(fsom3, 
+                   backgroundValues = fsom3$metaclustering,
+                   list_insteadof_ggarrange = TRUE)
+ggsave(filename = "Figures/FlowSOM_Subset.pdf",
+       plot = stars$tree)
+```
+

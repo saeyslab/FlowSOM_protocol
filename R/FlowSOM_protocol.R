@@ -19,6 +19,10 @@ ds <- FlowRepositoryR::download(FlowRepositoryR::flowRep.get("FR-FCM-ZZQY"),
 ds <- FlowRepositoryR::download(FlowRepositoryR::flowRep.get("FR-FCM-Z2TQ"), 
                                 "Data/Raw")
 
+# If the above lines of code give an error, download the data directly from the
+# FlowRepository website:
+# https://flowrepository.org/experiments/833/download_ziped_files
+# https://flowrepository.org/experiments/3002/download_ziped_files
 
 #### Prepare data ##############################################################
 #microbenchmark::microbenchmark({
