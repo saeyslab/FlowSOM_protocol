@@ -24,9 +24,19 @@ suppressPackageStartupMessages(library(ggplot2))
 # Figures for paper
 ## 2 
 ```{r}
-tiff("Figures/FIGURE_2.tiff", width = 4000, height = 1000, res = 330)
-print(ggpubr::ggarrange(plotlist = plot_list, nrow = 1)) +
-  theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt"))
+#tiff("Figures/FIGURE_2.tiff", width = 4000, height = 1000, res = 330)
+pdf("Figures/FIGURE_2.pdf", width = 8, height = 2)
+for (n in 1:4){
+  plot_list[[n]] <- plot_list[[n]] + 
+    theme(axis.title.x = element_text(size = 9),
+          axis.title.y = element_text(size = 9),
+          axis.text.x = element_text(size = 6),
+          axis.text.y = element_text(size = 6),
+          plot.title = element_text(size = 9))
+}
+
+print(ggpubr::ggarrange(plotlist = plot_list, nrow = 1, font.label = list(size = 1)) +
+  theme(plot.margin = unit(c(5.5,12,5.5,5.5),"pt")))
 dev.off()
 ```
 
@@ -54,23 +64,24 @@ for (channel in channels) {
                 alpha = 0.5, aes(colour = .data$group), shape = ".") + 
     ylab(GetMarkers(ff, channel)) + theme_classic() + 
     theme(axis.title.x = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 0.5, size = 30),
-          axis.title.y = element_text(size = 40),
-          axis.text.y = element_text(size = 40),
-          legend.title = element_text(size = 40),
-          legend.text = element_text(size = 40)) + 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, size = 6),
+          axis.title.y = element_text(size = 6),
+          axis.text.y = element_text(size = 5),
+          legend.title = element_text(size = 7),
+          legend.text = element_text(size = 7)) + 
     guides(colour = guide_legend(override.aes = list(size = 5, shape = 15, 
                                                      alpha = 1)))
   plots_list[[length(plots_list) + 1]] <- p
 }
 
-tiff("Figures/FIGURE_3.tiff", width = 3500, height = 1500)
+#tiff("Figures/FIGURE_3.tiff", width = 3500, height = 1500)
+pdf("Figures/FIGURE_3.pdf", width = 10, height = 4, onefile = FALSE)
 ggpubr::annotate_figure(ggpubr::ggarrange(plotlist = plots_list, 
                                           common.legend = TRUE, 
                                           ncol = 6, nrow = 2,
-                                          font.label = list(size=40)), 
-                        bottom = ggpubr::text_grob("Files", size = 40), 
-                        left = ggpubr::text_grob("Fluorescence intensity", size = 40,
+                                          font.label = list(size=10)), 
+                        bottom = ggpubr::text_grob("Files", size = 10), 
+                        left = ggpubr::text_grob("Fluorescence intensity", size = 10,
                                                  rot = 90))
 dev.off()
 ```
@@ -246,7 +257,8 @@ p4 <- PlotPies(fsom = fsom,
 
 ### 4
 ```{r}
-tiff("Figures/FIGURE_4.tiff", width = 4000, height = 2000, res = 330)
+#tiff("Figures/FIGURE_4.tiff", width = 4000, height = 2000, res = 330)
+pdf("Figures/FIGURE_4.pdf", width = 10, height = 7)
 ggpubr::ggarrange(p1, p2, p4, p3,
                   labels = c("a", "c", "b", "d"))
 dev.off()
@@ -258,7 +270,8 @@ p <- PlotStars(fsom = fsom,
                backgroundValues = fsom$metaclustering,
                list_insteadof_ggarrange = TRUE)
 
-tiff("Figures/FIGURE_5.tiff", width = 4000, height = 2400, res = 330)
+#tiff("Figures/FIGURE_5.tiff", width = 4000, height = 2400, res = 330)
+pdf("Figures/FIGURE_5.pdf", width = 11.5, height = 5)
 ggpubr::ggarrange(p$tree, 
                   ggpubr::ggarrange(p$starLegend, p$backgroundLegend, 
                                     nrow = 2),
@@ -268,7 +281,8 @@ dev.off()
 
 ## 6
 ```{r}
-tiff("Figures/FIGURE_6.tiff", width = 3000, height = 1800, res = 400)
+#tiff("Figures/FIGURE_6.tiff", width = 3000, height = 1800, res = 400)
+pdf("Figures/FIGURE_6.pdf", height = 5)
 PlotPies(fsom = fsom,
          cellTypes = factor(aggregate_labels, 
                             levels = c("Unlabeled", cell_types_of_interest)))
@@ -277,7 +291,8 @@ dev.off()
 
 ## 7
 ```{r}
-tiff("Figures/FIGURE_7.tiff", width = 3000, height = 1800, res = 400)
+#tiff("Figures/FIGURE_7.tiff", width = 3000, height = 1800, res = 400)
+pdf("Figures/FIGURE_7.pdf", width = 10, height = 6)
 ggpubr::ggarrange(plotlist = list(gr_1$tree, gr_2$tree, 
                                   gr_2$starLegend, gr_2$backgroundLegend), 
                   heights = c(3,1))

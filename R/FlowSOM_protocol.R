@@ -510,11 +510,11 @@ fsom_KO$metaclustering <- factor(unname(metaclustering[1:100]), levels = 1:15)
 fsom_WT$metaclustering <- factor(unname(metaclustering[101:200]), levels =  1:15)
 perc_KO <- GetFeatures(fsom = fsom_KO, 
                        files = paste0(dir_prepr, files[1:3]),
-                       population = "metaclusters", type = "percentages", 
+                       level = "metaclusters", type = "percentages", 
                        filenames = files[1:3])
 perc_WT <- GetFeatures(fsom = fsom_WT, 
                        files = paste0(dir_prepr, files[4:7]),
-                       population = "metaclusters", type = "percentages", 
+                       level = "metaclusters", type = "percentages", 
                        filenames = files[4:7])
 
 df <- data.frame(rbind(perc_KO[[1]], perc_WT[[1]])*100, 
