@@ -12,17 +12,19 @@ high-dimensional data.
 ### Key steps in the protocol
 * Prepare the data, including quality control (steps 1-16)
 * Train FlowSOM model (steps 17-19)
-* Check the quality of the FlowSOM model (steps 20)
+* Check the quality of the FlowSOM model (step 20)
 * Use the FlowSOM model for further discovery (steps 21-26)
+![FlowSOM analysis pipeline](https://media.springernature.com/full/springer-static/image/art%3A10.1038%2Fs41596-021-00550-0/MediaObjects/41596_2021_550_Fig1_HTML.png?as=webp)  
 
 ### References
-Quintelier K. et al. Analyzing high dimensional data using FlowSOM. (2021)  
+Quintelier, K. et al. Analyzing high-dimensional cytometry data using FlowSOM. 
+Nat Protoc 1–27 (2021) doi:10.1038/s41596-021-00550-0. (https://rdcu.be/cndgZ)  
 (Additional code to reproduce the figures and timing is listed in 
 [R/Figures_and_timing.R](R/Figures_and_timing.R).)  
   
-  
-Van Gassen, S. et al. FlowSOM: Using self-organizing maps for visualization and 
-interpretation of cytometry data. Cytometry A. (2015) doi:10.1002/cyto.a.22625
+Van Gassen, S. et al. FlowSOM: Using self-organizing maps for visualization and interpretation of cytometry data. Cytometry A 87, 636–645 (2015) doi:10.1002/cyto.a.22625.
+
+
 
 ### Session information
 ```{r}
